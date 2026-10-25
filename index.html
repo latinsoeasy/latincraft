@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LatinCraft – Pontes Survival</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#1d2b1a;--panel:#3b3b3b;--panel2:#2a2a2a;--line:#111;--hi:#6b6b6b;--txt:#f2f2f2;--green:#5fb43a;--red:#d9453a;--gold:#f5d442}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(#6fb5ee 0,#6fb5ee 140px,#5fb43a 140px,#5fb43a 156px,#7a5230 156px) fixed;color:var(--txt);font:14px/1.5 "Press Start 2P",ui-monospace,monospace;image-rendering:pixelated;min-height:100vh}
+#app{max-width:720px;margin:0 auto;padding:12px}
+h1{font-size:18px;margin:6px 0 10px;text-shadow:3px 3px #000;text-align:center}
+h2{font-size:13px;margin:0 0 10px;color:var(--gold);text-shadow:2px 2px #000}
+.panel{background:var(--panel);border:4px solid var(--line);box-shadow:inset 4px 4px 0 var(--hi),inset -4px -4px 0 #222;padding:14px;margin-bottom:12px}
+.hud{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:10px}
+.bar{flex:1;min-width:120px;height:14px;background:#111;border:2px solid #000}
+.bar i{display:block;height:100%;background:var(--green)}
+button,select,input{font:inherit;font-size:12px}
+button{background:#7d7d7d;color:#fff;border:3px solid #000;box-shadow:inset 3px 3px 0 #b0b0b0,inset -3px -3px 0 #555;padding:10px 12px;cursor:pointer;text-shadow:2px 2px #333;margin:3px 2px}
+button:hover{background:#8d9d7d}button.go{background:#4a9a2a;box-shadow:inset 3px 3px 0 #8ad66a,inset -3px -3px 0 #2a5e14}
+button.sm{font-size:10px;padding:6px 8px}button.sel{background:#4a9a2a}button:disabled{opacity:.4}
+.chips{display:flex;flex-wrap:wrap}.chips button{min-width:44px;font-size:10px;padding:6px}
+label{display:block;margin:8px 0 4px;font-size:10px}
+select,input[type=text]{background:#111;color:#fff;border:3px solid #000;padding:10px;width:100%}
+.q{text-align:center;padding:14px 4px}.q .de{font-size:16px;color:#fff}.q .en{font-size:11px;color:#bbb;margin-top:8px}
+.fb{min-height:44px;text-align:center;font-size:12px;margin:8px 0}.ok{color:#7dff5a}.bad{color:#ff7a6e}
+.row{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap}
+canvas,img.px{image-rendering:pixelated}.ic{width:32px;height:32px;vertical-align:middle;margin-right:4px}
+.inv{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;font-size:10px}
+.slot{background:#8b8b8b;border:3px solid #373737;padding:6px;text-align:center;color:#000;text-shadow:none}
+.rec{display:flex;justify-content:space-between;align-items:center;gap:6px;border-bottom:2px dashed #222;padding:6px 0;font-size:10px}
+.small{font-size:10px;color:#ccc}.hearts img{width:18px;height:18px}
+.shake{animation:sh .3s}@keyframes sh{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.pop{animation:pp .4s}@keyframes pp{50%{transform:scale(1.25)}}
+nav{display:flex;flex-wrap:wrap;justify-content:center;margin-bottom:8px}
+.hid{display:none}
+#grid{display:grid;gap:2px;border:4px solid #000}
+#grid div{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:clamp(14px,5vw,30px);cursor:pointer;background:#5fb43a}
+#grid div.a{background:#55a634}#grid div img{width:80%;height:80%;image-rendering:pixelated}
+.pal{display:inline-block;margin:2px;padding:4px 6px;background:#8b8b8b;border:3px solid #373737;color:#000;font-size:10px;cursor:pointer;text-shadow:none}
+.pal.sel{border-color:var(--gold);background:#bde0a0}.pal img{width:20px;height:20px;vertical-align:middle;image-rendering:pixelated}
+</style>
+</head>
+<body>
+<div id="app">
+<h1>⛏ LatinCraft – Pontes Survival</h1>
+<div class="panel hud">
+  <span id="lvl"></span>
+  <div class="bar"><i id="xpb" style="width:0"></i></div>
+  <span id="xpt"></span>
+  <span class="hearts" id="hearts"></span>
+</div>
+<nav>
+  <button class="sm" data-s="home">Welt</button>
+  <button class="sm" data-s="chest">Truhe</button>
+  <button class="sm" data-s="craft">Werkbank</button>
+  <button class="sm" data-s="map">Karte</button>
+  <button class="sm" data-s="save">Speicher</button>
+</nav>
+
+<!-- HOME -->
+<section id="home" class="screen">
+  <div class="panel">
+    <h2>Neue Runde</h2>
+    <label>Lektionen wählen (mehrere möglich)</label>
+    <div class="chips" id="lek"></div>
+    <div><button class="sm" id="all">Alle</button><button class="sm" id="none">Keine</button></div>
+    <label>Fragesprache</label>
+    <select id="lang"><option value="both">Deutsch + Englisch</option><option value="de">nur Deutsch</option><option value="en">nur Englisch</option></select>
+    <label>Anzahl Wörter</label>
+    <select id="num"><option>10</option><option>20</option><option selected>50</option></select>
+    <div class="row" style="margin-top:12px">
+      <button class="go" id="startN">▶ Runde starten</button>
+      <button class="go" id="startE" style="background:#9a3a2a">☠ Fehlerbank üben (<span id="ec">0</span>)</button>
+    </div>
+    <p class="small" id="poolinfo"></p>
+  </div>
+  <div class="panel small">Schreibe das lateinische Wort. Längenstriche (ā, ē …) sind egal. Ein Fehlerwort fliegt aus der Fehlerbank, wenn du es in <b>3 verschiedenen Runden hintereinander</b> richtig hast.</div>
+</section>
+
+<!-- QUIZ -->
+<section id="quiz" class="screen hid">
+  <div class="panel">
+    <div class="row small"><span id="prog"></span><span id="combo"></span></div>
+    <div class="row"><canvas id="mob" width="8" height="8" style="width:96px;height:96px"></canvas></div>
+    <div class="bar" style="margin:8px 0"><i id="mobhp" style="background:var(--red);width:100%"></i></div>
+    <div class="q" id="qbox"></div>
+    <input type="text" id="ans" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Latein …">
+    <div class="fb" id="fb"></div>
+    <div class="row"><button class="go" id="ok">Prüfen</button><button class="sm" id="hint">Tipp</button><button class="sm" id="quit">Abbrechen</button></div>
+  </div>
+</section>
+
+<!-- RESULT -->
+<section id="result" class="screen hid"><div class="panel" id="resbox"></div></section>
+
+<!-- CHEST -->
+<section id="chest" class="screen hid"><div class="panel"><h2>Inventar</h2><div class="inv" id="inv"></div><h2 style="margin-top:14px">Hergestellt</h2><div class="inv" id="crafted"></div></div></section>
+
+<!-- CRAFT -->
+<section id="craft" class="screen hid"><div class="panel"><h2>Werkbank</h2><div id="recs"></div></div></section>
+
+<!-- MAP -->
+<section id="map" class="screen hid"><div class="panel"><h2>Meine Welt</h2>
+<p class="small">Die Karte wächst mit jedem gemeisterten Wort (richtig beantwortet und nicht in der Fehlerbank). Wähle unten einen Block oder ein Item, dann tippe ein Feld. Tippe ein belegtes Feld, um es zurückzunehmen.</p>
+<p class="small" id="mapinfo"></p><div id="grid"></div><div id="pal" style="margin-top:8px"></div></div></section>
+
+<!-- SAVE -->
+<section id="save" class="screen hid"><div class="panel">
+  <h2>Spielstand</h2>
+  <p class="small">Gespeichert wird automatisch in diesem Browser. Zum Sichern oder für ein anderes Gerät: exportieren und importieren.</p>
+  <button class="go" id="exp">Exportieren</button><button id="imp">Importieren</button><input type="file" id="file" accept=".json" class="hid">
+  <p><button id="reset" style="background:#9a3a2a">Alles löschen</button></p>
+  <h2 style="margin-top:14px">Fehlerbank</h2><div class="small" id="elist"></div>
+</div></section>
+</div>
+
+<script>
+/* ===== Pixel-Grafik (selbst erzeugt, keine Minecraft-Assets) ===== */
+const ITEMS={dirt:{n:'Erde',c:['#7a5230','#5c3b20']},wood:{n:'Holz',c:['#8a6a3a','#5e4524']},stone:{n:'Stein',c:['#8b8b8b','#6e6e6e']},
+coal:{n:'Kohle',c:['#8b8b8b','#222'],ore:1},sand:{n:'Sand',c:['#e6d79a','#cdbd7c']},iron:{n:'Eisen',c:['#8b8b8b','#e0b890'],ore:1},gold:{n:'Gold',c:['#8b8b8b','#f5d442'],ore:1},diamond:{n:'Diamant',c:['#8b8b8b','#4de8e0'],ore:1}};
+const hash=(a,b,s)=>{let h=(a*73856093)^(b*19349663)^(s*83492791);h=(h^(h>>>13))*1274126177;return((h^(h>>>16))>>>0)/4294967295};
+function tileURL(k){const c=document.createElement('canvas');c.width=c.height=8;const x=c.getContext('2d'),it=ITEMS[k],s=k.length*7+k.charCodeAt(0);
+ for(let i=0;i<8;i++)for(let j=0;j<8;j++){const r=hash(i,j,s);x.fillStyle=it.ore?(r<.2?it.c[1]:(r<.5?'#7a7a7a':it.c[0])):(r<.35?it.c[1]:it.c[0]);x.fillRect(i,j,1,1)}return c.toDataURL()}
+const IMG={};Object.keys(ITEMS).forEach(k=>IMG[k]=tileURL(k));
+function creeper(hp){const c=document.getElementById('mob'),x=c.getContext('2d');
+ for(let i=0;i<8;i++)for(let j=0;j<8;j++){const r=hash(i,j,5);x.fillStyle=r<.3?'#2e8b2e':(r<.7?'#4cb64c':'#3a9d3a');x.fillRect(i,j,1,1)}
+ x.fillStyle='#111';[[1,2],[2,2],[5,2],[6,2],[1,3],[2,3],[5,3],[6,3],[3,4],[4,4],[2,5],[3,5],[4,5],[5,5],[2,6],[5,6]].forEach(p=>x.fillRect(p[0],p[1],1,1))}
+const HEART='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 9 8" shape-rendering="crispEdges"><path fill="#000" d="M1 0h2v1h1v1h1V1h1V0h2v1h1v3H8v1H7v1H6v1H5v1H4V7H3V6H2V5H1V4H0V1h1z"/><path fill="#e0302a" d="M1 1h2v1h1v1h1V2h1V1h2v3H7v1H6v1H5v1H4V6H3V5H2V4H1z"/></svg>');
+const HEART0='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 9 8" shape-rendering="crispEdges"><path fill="#000" d="M1 0h2v1h1v1h1V1h1V0h2v1h1v3H8v1H7v1H6v1H5v1H4V7H3V6H2V5H1V4H0V1h1z"/><path fill="#555" d="M1 1h2v1h1v1h1V2h1V1h2v3H7v1H6v1H5v1H4V6H3V5H2V4H1z"/></svg>');
+
+/* ===== Spielstand ===== */
+const KEY='latincraft-v1';
+let S={xp:0,hp:10,inv:{},crafted:{},errors:{},sel:[0,1],lang:'both',num:50,mastered:0,rounds:0,known:{},mapd:{}};
+try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+let V=[];const $=id=>document.getElementById(id);
+const titles=['Neuling','Holzfäller','Steinmetz','Eisenschmied','Goldgräber','Diamantjäger','Meister von Rom'];
+
+/* ===== Hilfsfunktionen ===== */
+function norm(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z\/\s-]/g,' ').replace(/\s+/g,' ').trim()}
+function accepted(la){const set=new Set(),add=t=>{const n=norm(t);if(n)set.add(n)};
+ add(la);const base=la.replace(/\(.*?\)/g,'');add(base);add(base.split(',')[0]);
+ base.split(',')[0].split('/').forEach(add);return set}
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const lekName=l=>l===0?'Salve!':'L'+l;
+
+/* ===== HUD ===== */
+function hud(){const lv=Math.floor(S.xp/100)+1;$('lvl').textContent='LV '+lv+' · '+titles[Math.min(titles.length-1,Math.floor((lv-1)/3))];
+ $('xpb').style.width=(S.xp%100)+'%';$('xpt').textContent=(S.xp%100)+'/100 XP';
+ $('hearts').innerHTML=Array.from({length:10},(_,i)=>`<img src="${i<S.hp?HEART:HEART0}">`).join('')}
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.add('hid'));$(id).classList.remove('hid');
+ if(id==='home')homeUI();if(id==='chest')chestUI();if(id==='craft')craftUI();if(id==='map')mapUI();if(id==='save')saveUI();window.scrollTo(0,0)}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{if(!round)show(b.dataset.s)});
+
+/* ===== Home ===== */
+function homeUI(){const L=[...new Set(V.map(v=>v.l))].sort((a,b)=>a-b);
+ $('lek').innerHTML=L.map(l=>`<button data-l="${l}" class="${S.sel.includes(l)?'sel':''}">${lekName(l)}</button>`).join('');
+ $('lek').querySelectorAll('button').forEach(b=>b.onclick=()=>{const l=+b.dataset.l;S.sel=S.sel.includes(l)?S.sel.filter(x=>x!==l):[...S.sel,l];save();homeUI()});
+ $('lang').value=S.lang;$('num').value=S.num;
+ const n=V.filter(v=>S.sel.includes(v.l)).length;$('poolinfo').textContent=n+' Wörter ausgewählt';
+ const ec=Object.keys(S.errors).length;$('ec').textContent=ec;$('startE').disabled=!ec;$('startN').disabled=!n}
+$('all').onclick=()=>{S.sel=[...new Set(V.map(v=>v.l))];save();homeUI()};
+$('none').onclick=()=>{S.sel=[];save();homeUI()};
+$('lang').onchange=e=>{S.lang=e.target.value;save()};$('num').onchange=e=>{S.num=+e.target.value;save()};
+
+/* ===== Runde ===== */
+let round=null;
+function start(mode){let pool;
+ if(mode==='err'){pool=V.filter(v=>S.errors[v.id]).sort((a,b)=>S.errors[a.id].s-S.errors[b.id].s||Math.random()-.5)}
+ else pool=shuffle(V.filter(v=>S.sel.includes(v.l)));
+ pool=pool.slice(0,S.num);if(mode==='err')shuffle(pool);if(!pool.length)return;
+ round={mode,q:pool,i:0,right:0,wrong:[],combo:0,best:0,loot:{},xp:0,gone:[],state:'ask'};
+ show('quiz');next()}
+$('startN').onclick=()=>start('norm');$('startE').onclick=()=>start('err');
+function next(){const r=round;if(r.i>=r.q.length)return finish();const w=r.q[r.i];r.state='ask';
+ $('prog').textContent=(r.i+1)+' / '+r.q.length+(r.mode==='err'?' · Fehlerbank':'');
+ $('combo').textContent=r.combo>1?'🔥 Combo x'+r.combo:'';
+ const de=S.lang!=='en'?`<div class="de">${w.de}</div>`:'',en=S.lang!=='de'?`<div class="en">${w.en}</div>`:'';
+ $('qbox').innerHTML=de+en;$('ans').value='';$('ans').disabled=false;$('fb').textContent='';$('fb').className='fb';
+ $('ok').textContent='Prüfen';$('mobhp').style.width=(100-r.i/r.q.length*100)+'%';creeper();$('ans').focus()}
+function check(){const r=round,w=r.q[r.i];
+ if(r.state==='next'){r.i++;return next()}
+ const a=norm($('ans').value);if(!a)return;
+ const good=accepted(w.la).has(a);r.state='next';$('ans').disabled=true;$('ok').textContent='Weiter ▶';
+ if(good){r.right++;r.combo++;r.best=Math.max(r.best,r.combo);
+  const gain=10+Math.min(r.combo,10);S.xp+=gain;r.xp+=gain;
+  const e=S.errors[w.id];if(e){e.s++;if(e.s>=3){delete S.errors[w.id];r.gone.push(w.la);S.mastered++;S.known[w.id]=1}}else S.known[w.id]=1;
+  const rnd=Math.random()*100+Math.min(r.combo,20);const k=rnd<30?'dirt':rnd<45?'sand':rnd<63?'wood':rnd<77?'stone':rnd<87?'coal':rnd<100?'iron':rnd<112?'gold':'diamond';
+  S.inv[k]=(S.inv[k]||0)+1;r.loot[k]=(r.loot[k]||0)+1;
+  $('fb').className='fb ok pop';$('fb').innerHTML=`✔ Richtig! +${gain} XP <img class="ic" src="${IMG[k]}">${ITEMS[k].n}`+(e&&S.errors[w.id]?`<br><span class="small">Fehlerbank: ${e.s}/3</span>`:e?'<br>🎉 aus der Fehlerbank entlassen!':'');
+ }else{r.combo=0;r.wrong.push(w);S.hp=Math.max(0,S.hp-1);if(S.hp===0){S.hp=10;S.xp=Math.max(0,S.xp-20)}
+  const e=S.errors[w.id]=S.errors[w.id]||{s:0,w:0};e.s=0;e.w++;
+  $('fb').className='fb bad';$('fb').innerHTML=`✘ Creeper-Treffer! Richtig: <b>${w.la}</b>`;
+  $('mob').classList.remove('shake');void $('mob').offsetWidth;$('mob').classList.add('shake')}
+ save();hud()}
+$('ok').onclick=check;
+$('ans').addEventListener('keydown',e=>{if(e.key==='Enter')check()});
+$('hint').onclick=()=>{if(round&&round.state==='ask'){const w=round.q[round.i].la.split(',')[0];$('fb').className='fb';$('fb').textContent=w[0]+' '+'_ '.repeat(Math.max(0,w.length-1)).trim()}};
+$('quit').onclick=()=>{if(confirm('Runde abbrechen?'))finish(true)};
+function finish(q){const r=round;round=null;show('result');const n=r.i+(q?0:0);
+ const loot=Object.entries(r.loot).map(([k,v])=>`<img class="ic" src="${IMG[k]}">${v}`).join(' ')||'–';
+ S.rounds++;save();hud();
+ $('resbox').innerHTML=`<h2>${q?'Runde abgebrochen':'Runde geschafft!'}</h2>
+ <p>Richtig: ${r.right} · Falsch: ${r.wrong.length}</p><p>Beste Combo: ${r.best} · +${r.xp} XP</p><p>Beute: ${loot}</p>
+ ${r.gone.length?`<p class="ok">Aus der Fehlerbank entlassen: ${r.gone.join(', ')}</p>`:''}
+ ${r.wrong.length?`<h2>Nochmal ansehen</h2><div class="small">${r.wrong.map(w=>`<b>${w.la}</b> – ${w.de}`).join('<br>')}</div><p class="small">Diese Wörter sind jetzt in der Fehlerbank (${Object.keys(S.errors).length}).</p>`:''}
+ <button class="go" onclick="show('home')">Zurück zur Welt</button>`}
+
+/* ===== Truhe & Werkbank ===== */
+const REC=`Holzspitzhacke|⛏️|wood:5
+Holzaxt|🪓|wood:4
+Schaufel|🥄|wood:3,stone:1
+Hacke|🌾|wood:3,stone:2
+Angel|🎣|wood:4,sand:1
+Steinschwert|🗡️|stone:8,wood:2
+Eisenschwert|⚔️|iron:6,wood:2
+Bogen|🏹|wood:6,dirt:2
+Schild|🔰|wood:6,iron:2
+Fackel|🔦|coal:2,wood:1
+Laterne|🏮|coal:3,iron:2
+Eisenrüstung|🛡️|iron:10
+Goldhelm|🪖|gold:6
+Diamantspitzhacke|💎|diamond:3,iron:3
+Diamantschwert|🔱|diamond:4,iron:2
+Diamantrüstung|🥋|diamond:8
+Goldener Apfel|🍎|gold:5
+Brot|🍞|dirt:3,sand:1
+Kuchen|🎂|sand:3,gold:1,dirt:2
+Kompass|🧭|iron:4,gold:1
+Uhr|⏰|gold:4,iron:2
+Schatzkarte|🗺️|wood:2,coal:2
+Buch|📖|wood:3,dirt:2
+Truhe|🧰|wood:8
+Bett|🛏️|wood:6,sand:2
+Tür|🚪|wood:6
+Zaun|🚧|wood:4
+Leiter|🪜|wood:7
+Boot|🛶|wood:5,dirt:1
+Wagen|🛒|iron:5,wood:3
+Schienen|🛤️|iron:6,wood:2
+Ofen|🏭|stone:8
+Amboss|🔨|iron:10,stone:4
+Glasflasche|🧪|sand:4,coal:1
+Glasfenster|🪟|sand:6
+Ziegelmauer|🧱|stone:6,dirt:4
+Brücke|🌉|stone:10,wood:6
+Brunnen|⛲|stone:12,sand:4
+Hütte|🛖|wood:12,dirt:6
+Haus|🏠|wood:20,stone:10
+Turm|🗼|stone:25,iron:3
+Burg|🏰|stone:30,wood:20,dirt:20
+Windmühle|🌬️|wood:15,iron:4
+Gewächshaus|🌱|sand:10,wood:8,dirt:6
+Statue|🗿|stone:20,gold:2
+Thron|🪑|gold:10,wood:6
+Krone|👑|gold:12,diamond:2
+Schatztruhe|💰|gold:10,wood:10
+Portal|🌀|diamond:10,stone:10
+Drachenei|🥚|diamond:15,gold:10,coal:10`.split('\n').map(l=>{const p=l.split('|');return [p[0],p[1],Object.fromEntries(p[2].split(',').map(x=>{const q=x.split(':');return [q[0],+q[1]]}))]});
+function chestUI(){$('inv').innerHTML=Object.keys(ITEMS).map(k=>`<div class="slot"><img class="px ic" src="${IMG[k]}"><br>${ITEMS[k].n}<br>x${S.inv[k]||0}</div>`).join('');
+ $('crafted').innerHTML=Object.entries(S.crafted).map(([k,v])=>`<div class="slot">${REC.find(r=>r[0]===k)[1]}<br>${k}<br>x${v}</div>`).join('')||'<span class="small">Noch nichts.</span>'}
+function craftUI(){$('recs').innerHTML=REC.map((r,i)=>{const ok=Object.entries(r[2]).every(([k,v])=>(S.inv[k]||0)>=v);
+ return `<div class="rec"><span>${r[1]} ${r[0]}<br>${Object.entries(r[2]).map(([k,v])=>`<img class="px ic" style="width:16px;height:16px" src="${IMG[k]}">${v}`).join(' ')}</span><button class="sm" ${ok?'':'disabled'} data-i="${i}">Bauen</button></div>`}).join('');
+ $('recs').querySelectorAll('button').forEach(b=>b.onclick=()=>{const r=REC[b.dataset.i];Object.entries(r[2]).forEach(([k,v])=>S.inv[k]-=v);S.crafted[r[0]]=(S.crafted[r[0]]||0)+1;S.xp+=25;save();hud();craftUI()})}
+
+/* ===== Karte ===== */
+let pick=null;
+const glyph=k=>ITEMS[k]?`<img src="${IMG[k]}">`:REC.find(r=>r[0]===k)[1];
+const have=k=>ITEMS[k]?(S.inv[k]||0):(S.crafted[k]||0);
+const give=(k,d)=>{if(ITEMS[k])S.inv[k]=(S.inv[k]||0)+d;else S.crafted[k]=(S.crafted[k]||0)+d;if(S.crafted[k]===0)delete S.crafted[k]};
+const mastered=()=>Object.keys(S.known).filter(id=>!S.errors[id]).length;
+const mapSide=m=>Math.min(16,5+Math.floor(m/50));
+function mapUI(){
+ if(Array.isArray(S.map)){S.map.forEach((k,i)=>{if(k)S.mapd[(i%8)+','+Math.floor(i/8)]=k});S.map=null}
+ const m=mastered(),n=mapSide(m);
+ Object.keys(S.mapd).forEach(p=>{const[x,y]=p.split(',').map(Number);if(x>=n||y>=n){give(S.mapd[p],1);delete S.mapd[p]}});
+ const g=$('grid');g.style.gridTemplateColumns=`repeat(${n},1fr)`;g.style.fontSize=Math.floor(Math.min(innerWidth,700)/n*.5)+'px';
+ let c='';for(let y=0;y<n;y++)for(let x=0;x<n;x++){const k=S.mapd[x+','+y];c+=`<div class="${(x+y)%2?'a':''}" data-p="${x},${y}">${k?glyph(k):''}</div>`}
+ g.innerHTML=c;
+ $('mapinfo').innerHTML=n<16?`Gemeisterte Wörter: <b>${m}</b> · Karte ${n}×${n} · nächste Vergrößerung bei <b>${(n-4)*50}</b> Wörtern`:`Gemeisterte Wörter: <b>${m}</b> · Karte ${n}×${n} (Maximum!)`;
+ g.querySelectorAll('div').forEach(d=>d.onclick=()=>{const p=d.dataset.p,c=S.mapd[p];
+  if(c){give(c,1);delete S.mapd[p]}else if(pick&&have(pick)>0){give(pick,-1);S.mapd[p]=pick}else return;
+  save();mapUI()});
+ const keys=[...Object.keys(ITEMS),...REC.map(r=>r[0])].filter(k=>have(k)>0);
+ if(pick&&!keys.includes(pick))pick=null;
+ $('pal').innerHTML=keys.map(k=>`<span class="pal ${k===pick?'sel':''}" data-k="${k}">${glyph(k)} ${ITEMS[k]?ITEMS[k].n:k} x${have(k)}</span>`).join('')||'<span class="small">Noch nichts im Inventar – lerne Vokabeln und baue etwas!</span>';
+ $('pal').querySelectorAll('.pal').forEach(p=>p.onclick=()=>{pick=p.dataset.k;mapUI()})}
+
+/* ===== Speicher ===== */
+function saveUI(){const e=Object.entries(S.errors);$('elist').innerHTML=e.length?e.map(([id,v])=>{const w=V[id];return `${w.la} – ${w.de} (${v.s}/3)`}).join('<br>'):'Leer – super!'}
+$('exp').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='latincraft-save.json';a.click()};
+$('imp').onclick=()=>$('file').click();
+$('file').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{Object.assign(S,JSON.parse(t));save();hud();show('home')}catch(x){alert('Datei ungültig')}})};
+$('reset').onclick=()=>{if(confirm('Wirklich alles löschen?')){localStorage.removeItem(KEY);location.reload()}};
+
+/* ===== Start ===== */
+fetch('vocab.json').then(r=>r.json()).then(d=>{V=d;hud();show('home')}).catch(()=>{$('home').innerHTML='<div class="panel">vocab.json konnte nicht geladen werden. Bitte über GitHub Pages oder einen lokalen Server öffnen.</div>'});
+</script>
+</body>
+</html>
