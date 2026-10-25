@@ -287,6 +287,8 @@ let pick=null;
 const glyph=k=>k.startsWith('fig:')?`<img class="fg" src="${figURL(figOf(k))}">`:ITEMS[k]?`<img src="${IMG[k]}">`:REC.find(r=>r[0]===k)[1];
 const have=k=>k.startsWith('fig:')?(figOf(k)&&!figOf(k).placed?1:0):ITEMS[k]?(S.inv[k]||0):(S.crafted[k]||0);
 const give=(k,d)=>{if(k.startsWith('fig:')){figOf(k).placed=d<0;return}if(ITEMS[k])S.inv[k]=(S.inv[k]||0)+d;else S.crafted[k]=(S.crafted[k]||0)+d;if(S.crafted[k]===0)delete S.crafted[k]};
+const mastered=()=>Object.keys(S.known).filter(id=>!S.errors[id]).length;
+const mapSide=m=>Math.min(16,5+Math.floor(m/50));
 function mapUI(){
  if(Array.isArray(S.map)){S.map.forEach((k,i)=>{if(k)S.mapd[(i%8)+','+Math.floor(i/8)]=k});S.map=null}
  const m=mastered(),n=mapSide(m);
