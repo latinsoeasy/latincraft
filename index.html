@@ -41,6 +41,11 @@ nav{display:flex;flex-wrap:wrap;justify-content:center;margin-bottom:8px}
 #grid div.a{background:#55a634}#grid div img{width:80%;height:80%;image-rendering:pixelated}
 .pal{display:inline-block;margin:2px;padding:4px 6px;background:#8b8b8b;border:3px solid #373737;color:#000;font-size:10px;cursor:pointer;text-shadow:none}
 .pal.sel{border-color:var(--gold);background:#bde0a0}.pal img{width:20px;height:20px;vertical-align:middle;image-rendering:pixelated}
+.lcard{background:#2a2a2a;border:3px solid #000;padding:18px 8px;text-align:center;margin:10px 0}
+.lcard .la{font-size:20px;color:var(--gold);text-shadow:2px 2px #000;word-break:break-word}
+.lcard .ph{font-size:11px;color:#9ee0ff;margin:10px 0}
+.lcard .tr{font-size:14px;margin-top:10px;word-break:break-word}.lcard .tr small{display:block;font-size:9px;color:#999;margin-bottom:4px}
+.chk{display:flex;align-items:center;gap:8px;font-size:10px;margin:10px 0}.chk input{width:18px;height:18px}
 </style>
 </head>
 <body>
@@ -54,6 +59,7 @@ nav{display:flex;flex-wrap:wrap;justify-content:center;margin-bottom:8px}
 </div>
 <nav>
   <button class="sm" data-s="home">Welt</button>
+  <button class="sm" data-s="learn">Lernen</button>
   <button class="sm" data-s="chest">Truhe</button>
   <button class="sm" data-s="craft">Werkbank</button>
   <button class="sm" data-s="map">Karte</button>
@@ -78,6 +84,35 @@ nav{display:flex;flex-wrap:wrap;justify-content:center;margin-bottom:8px}
     <p class="small" id="poolinfo"></p>
   </div>
   <div class="panel small">Schreibe das lateinische Wort. Längenstriche (ā, ē …) sind egal. Ein Fehlerwort fliegt aus der Fehlerbank, wenn du es in <b>3 verschiedenen Runden hintereinander</b> richtig hast.<br><br>Auch falsche Antworten geben 2 XP. Alle 500 XP gibt es einen Bonus: seltenes Material oder eine zufällige Figur für die Karte.</div>
+</section>
+
+<!-- LEARN -->
+<section id="learn" class="screen hid">
+  <div class="panel" id="lsetup">
+    <h2>Wörter lernen</h2>
+    <label>Lektionen wählen (mehrere möglich)</label>
+    <div class="chips" id="llek"></div>
+    <div><button class="sm" id="lall">Alle</button><button class="sm" id="lnone">Keine</button></div>
+    <label class="chk"><input type="checkbox" id="lshuf"> Reihenfolge mischen</label>
+    <div class="row"><button class="go" id="lstart">▶ Lernen starten</button></div>
+    <p class="small" id="linfo"></p>
+    <p class="small">Du siehst Latein, Deutsch, Englisch und die Aussprache. Für je <b>10 angesehene Wörter</b> gibt es <b>1 XP</b>.</p>
+  </div>
+  <div class="panel hid" id="lcardp">
+    <div class="row small"><span id="lprog"></span><span id="lxp"></span></div>
+    <div class="lcard">
+      <div class="la" id="lla"></div>
+      <div class="ph" id="lph"></div>
+      <div class="tr"><small>Deutsch</small><span id="lde"></span></div>
+      <div class="tr"><small>English</small><span id="len"></span></div>
+    </div>
+    <div class="row">
+      <button class="sm" id="lprev">◀ Zurück</button>
+      <button class="sm" id="lsay">🔊 Hören</button>
+      <button class="go" id="lnext">Weiter ▶</button>
+    </div>
+    <div class="row"><button class="sm" id="lend">Beenden</button></div>
+  </div>
 </section>
 
 <!-- QUIZ -->
@@ -131,7 +166,7 @@ function creeper(hp){const c=document.getElementById('mob'),x=c.getContext('2d')
 
 /* ===== Spielstand ===== */
 const KEY='latincraft-v1';
-const DEF=()=>({xp:0,inv:{},crafted:{},errors:{},sel:[0,1],lang:'both',num:50,mastered:0,rounds:0,known:{},mapd:{},figs:[]});
+const DEF=()=>({xp:0,inv:{},crafted:{},errors:{},sel:[0,1],lang:'both',num:50,mastered:0,rounds:0,known:{},mapd:{},figs:[],lsel:[0,1],lshuf:false,learned:0});
 let S=DEF();
 try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
@@ -167,7 +202,7 @@ function hud(){const lv=Math.floor(S.xp/100)+1;$('lvl').textContent='LV '+lv+' �
  $('xpb').style.width=(S.xp%100)+'%';$('xpt').textContent=(S.xp%100)+'/100 XP';
  }
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.add('hid'));$(id).classList.remove('hid');
- if(id==='home')homeUI();if(id==='chest')chestUI();if(id==='craft')craftUI();if(id==='map')mapUI();if(id==='save')saveUI();window.scrollTo(0,0)}
+ if(id==='home')homeUI();if(id==='learn')learnUI();if(id==='chest')chestUI();if(id==='craft')craftUI();if(id==='map')mapUI();if(id==='save')saveUI();window.scrollTo(0,0)}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{if(!round)show(b.dataset.s)});
 
 /* ===== Home ===== */
@@ -180,6 +215,45 @@ function homeUI(){const L=[...new Set(V.map(v=>v.l))].sort((a,b)=>a-b);
 $('all').onclick=()=>{S.sel=[...new Set(V.map(v=>v.l))];save();homeUI()};
 $('none').onclick=()=>{S.sel=[];save();homeUI()};
 $('lang').onchange=e=>{S.lang=e.target.value;save()};$('num').onchange=e=>{S.num=+e.target.value;save()};
+
+/* ===== Wörter lernen ===== */
+let LR=null;
+/* vereinfachte klassische Aussprache (deutsch lesbar) */
+function phon(la){let s=la.split(',')[0].split('/')[0].replace(/\(.*?\)/g,'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+ s=s.replace(/qu/g,'kw').replace(/ae/g,'ai').replace(/oe/g,'oi').replace(/ch/g,'kh').replace(/ph/g,'f').replace(/th/g,'t').replace(/x/g,'ks').replace(/v/g,'w').replace(/c/g,'k').replace(/z/g,'dz');
+ return '['+s.trim()+']'}
+function speak(t){if(!('speechSynthesis' in window)){toast('Keine Sprachausgabe verfügbar');return}
+ const w=t.split(',')[0].split('/')[0].replace(/\(.*?\)/g,'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+ const u=new SpeechSynthesisUtterance(w),vs=speechSynthesis.getVoices();
+ const v=vs.find(x=>/^la/i.test(x.lang))||vs.find(x=>/^it/i.test(x.lang));
+ if(v){u.voice=v;u.lang=v.lang}else u.lang='it-IT';u.rate=.8;speechSynthesis.cancel();speechSynthesis.speak(u)}
+function learnUI(){LR=null;const L=[...new Set(V.map(v=>v.l))].sort((a,b)=>a-b);
+ $('lsetup').classList.remove('hid');$('lcardp').classList.add('hid');
+ $('llek').innerHTML=L.map(l=>`<button data-l="${l}" class="${S.lsel.includes(l)?'sel':''}">${lekName(l)}</button>`).join('');
+ $('llek').querySelectorAll('button').forEach(b=>b.onclick=()=>{const l=+b.dataset.l;S.lsel=S.lsel.includes(l)?S.lsel.filter(x=>x!==l):[...S.lsel,l];save();learnUI()});
+ $('lshuf').checked=!!S.lshuf;
+ const n=V.filter(v=>S.lsel.includes(v.l)).length;
+ $('linfo').textContent=n+' Wörter ausgewählt · bisher angesehen: '+S.learned+' (nächstes +1 XP in '+(10-S.learned%10)+')';
+ $('lstart').disabled=!n}
+$('lall').onclick=()=>{S.lsel=[...new Set(V.map(v=>v.l))];save();learnUI()};
+$('lnone').onclick=()=>{S.lsel=[];save();learnUI()};
+$('lshuf').onchange=e=>{S.lshuf=e.target.checked;save()};
+$('lstart').onclick=()=>{let list=V.filter(v=>S.lsel.includes(v.l));if(!list.length)return;
+ list=S.lshuf?shuffle(list.slice()):list.slice().sort((a,b)=>a.l-b.l||a.id-b.id);
+ LR={list,i:0,seen:new Set()};$('lsetup').classList.add('hid');$('lcardp').classList.remove('hid');lcard()};
+function lcard(){const w=LR.list[LR.i];
+ if(!LR.seen.has(w.id)){LR.seen.add(w.id);S.learned++;
+  if(S.learned%10===0){addXP(1);toast('+1 XP · 10 Wörter angesehen')}
+  save();hud()}
+ $('lprog').textContent=(LR.i+1)+' / '+LR.list.length+' · '+lekName(w.l);
+ $('lxp').textContent='bis +1 XP: '+(S.learned%10)+'/10';
+ $('lla').textContent=w.la;$('lph').textContent='🔊 '+phon(w.la);$('lde').textContent=w.de;$('len').textContent=w.en;
+ $('lprev').disabled=LR.i===0;$('lnext').textContent=LR.i===LR.list.length-1?'Fertig ✔':'Weiter ▶'}
+$('lnext').onclick=()=>{if(!LR)return;if(LR.i>=LR.list.length-1){toast('Alle Wörter durchgesehen!');learnUI();return}LR.i++;lcard()};
+$('lprev').onclick=()=>{if(LR&&LR.i>0){LR.i--;lcard()}};
+$('lsay').onclick=()=>{if(LR)speak(LR.list[LR.i].la)};
+$('lend').onclick=()=>learnUI();
+if('speechSynthesis' in window)speechSynthesis.getVoices();
 
 /* ===== Runde ===== */
 let round=null;
@@ -307,7 +381,7 @@ function mapUI(){
 
 /* ===== Speicher ===== */
 function saveUI(){const sm=o=>Object.values(o).reduce((a,b)=>a+b,0);
- $('sum').innerHTML=`Gemeisterte Wörter: ${mastered()}<br>Fehlerbank: ${Object.keys(S.errors).length} Wörter<br>Truhe: ${sm(S.inv)} Rohstoffe<br>Werkbank: ${sm(S.crafted)} gebaute Items<br>Karte: ${Object.keys(S.mapd).length} Felder belegt<br>Figuren: ${S.figs.length}<br>XP: ${S.xp}`;const e=Object.entries(S.errors);$('elist').innerHTML=e.length?e.map(([id,v])=>{const w=V[id];return `${w.la} – ${w.de} (${v.s}/3)`}).join('<br>'):'Leer – super!'}
+ $('sum').innerHTML=`Gemeisterte Wörter: ${mastered()}<br>Angesehene Wörter (Lernen): ${S.learned}<br>Fehlerbank: ${Object.keys(S.errors).length} Wörter<br>Truhe: ${sm(S.inv)} Rohstoffe<br>Werkbank: ${sm(S.crafted)} gebaute Items<br>Karte: ${Object.keys(S.mapd).length} Felder belegt<br>Figuren: ${S.figs.length}<br>XP: ${S.xp}`;const e=Object.entries(S.errors);$('elist').innerHTML=e.length?e.map(([id,v])=>{const w=V[id];return `${w.la} – ${w.de} (${v.s}/3)`}).join('<br>'):'Leer – super!'}
 $('exp').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({...S,v:2})],{type:'application/json'}));a.download='latincraft-save-'+new Date().toISOString().slice(0,10)+'.json';a.click()};
 $('imp').onclick=()=>$('file').click();
 $('file').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);if(typeof d!=='object'||!d||!('errors' in d||'inv' in d))throw 0;
