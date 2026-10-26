@@ -280,9 +280,9 @@ function check(){const r=round,w=r.q[r.i];
   const rnd=Math.random()*100+Math.min(r.combo,20);const k=rnd<30?'dirt':rnd<45?'sand':rnd<63?'wood':rnd<77?'stone':rnd<87?'coal':rnd<100?'iron':rnd<112?'gold':'diamond';
   S.inv[k]=(S.inv[k]||0)+1;r.loot[k]=(r.loot[k]||0)+1;
   $('fb').className='fb ok pop';$('fb').innerHTML=`✔ Richtig! +${gain} XP <img class="ic" src="${IMG[k]}">${ITEMS[k].n}`+(e&&S.errors[w.id]?`<br><span class="small">Fehlerbank: ${e.s}/3</span>`:e?'<br>🎉 aus der Fehlerbank entlassen!':'');
- }else{r.combo=0;r.wrong.push(w);S.xp = Math.max(0, S.xp - 3);;r.xp+=2;
+ }else{r.combo=0;r.wrong.push(w);S.xp = Math.max(0, S.xp - 1);;r.xp+=2;
   const e=S.errors[w.id]=S.errors[w.id]||{s:0,w:0};e.s=0;e.w++;
-  $('fb').className='fb bad';$('fb').innerHTML=`✘ Leider falsch – richtig: <b>${w.la}</b> · +2 XP`;
+  $('fb').className='fb bad';$('fb').innerHTML=`✘ Leider falsch – richtig: <b>${w.la}</b> · -1 XP`;
   $('mob').classList.remove('shake');void $('mob').offsetWidth;$('mob').classList.add('shake')}
  save();hud()}
 $('ok').onclick=check;
