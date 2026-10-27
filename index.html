@@ -80,11 +80,19 @@ nav{display:flex;flex-wrap:wrap;justify-content:center;margin-bottom:8px}
     <div class="row" style="margin-top:12px">
       <button class="go" id="startN">▶ Runde starten</button>
       <button class="go" id="startE" style="background:#9a3a2a">☠ Fehlerbank üben (<span id="ec">0</span>)</button>
+      <button class="go" id="showE" style="background:#2a6a9a">📋 Fehlerbank anzeigen</button>
     </div>
     <p class="small" id="poolinfo"></p>
   </div>
   <div class="panel small">Schreibe das lateinische Wort. Längenstriche (ā, ē …) sind egal. Ein Fehlerwort fliegt aus der Fehlerbank, wenn du es in <b>3 verschiedenen Runden hintereinander</b> richtig hast.<br><br>Auch falsche Antworten geben 2 XP. Alle 500 XP gibt es einen Bonus: seltenes Material oder eine zufällige Figur für die Karte.</div>
 </section>
+
+<!-- ERRORS -->
+<section id="errs" class="screen hid"><div class="panel">
+  <h2>Fehlerbank (<span id="en2">0</span>)</h2>
+  <div id="errbox"></div>
+  <div class="row" style="margin-top:12px"><button class="go" id="errPractice" style="background:#9a3a2a">☠ Üben</button><button id="errBack">Zurück</button></div>
+</div></section>
 
 <!-- LEARN -->
 <section id="learn" class="screen hid">
@@ -175,9 +183,12 @@ const titles=['Neuling','Holzfäller','Steinmetz','Eisenschmied','Goldgräber','
 
 /* ===== Hilfsfunktionen ===== */
 function norm(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z\/\s-]/g,' ').replace(/\s+/g,' ').trim()}
-function accepted(la){const set=new Set(),add=t=>{const n=norm(t);if(n)set.add(n)};
- add(la);const base=la.replace(/\(.*?\)/g,'');add(base);add(base.split(',')[0]);
- base.split(',')[0].split('/').forEach(add);return set}
+/* Gleiche deutsche Übersetzung: jedes lateinische Wort einer Gruppe gilt als richtig */
+const SYN=[["et", "-que", "atque"], ["etiam", "quoque (nachgestellt)"], ["bene", "bonus"], ["ita", "tam", "sīc"], ["malus", "improbus"], ["suus", "eius"], ["gaudium", "laetitia"], ["sē", "sibī"], ["autem", "at"], ["pūgna", "proelium"], ["quia", "quod"], ["sacer", "sānctus"], ["iubēre", "imperāre"], ["dēligere", "ēligere"], ["modus", "genus"], ["pōscere", "pōstulāre"], ["prūdēns", "prūdenter"], ["litterae", "epistula"], ["dīcere", "loquī"]];
+const alts=la=>{const g=SYN.find(g=>g.includes(la));return g?g.filter(x=>x!==la):[]};
+function accepted(la,own){const set=new Set(),add=t=>{const n=norm(t);if(n)set.add(n)};
+ const forms=l=>{add(l);const base=l.replace(/\(.*?\)/g,'');add(base);add(base.split(',')[0]);base.split(',')[0].split('/').forEach(add)};
+ forms(la);if(!own)SYN.forEach(g=>{if(g.includes(la))g.forEach(forms)});return set}
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const lekName=l=>l===0?'Salve!':'L'+l;
 
@@ -202,7 +213,7 @@ function hud(){const lv=Math.floor(S.xp/100)+1;$('lvl').textContent='LV '+lv+' �
  $('xpb').style.width=(S.xp%100)+'%';$('xpt').textContent=(S.xp%100)+'/100 XP';
  }
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.add('hid'));$(id).classList.remove('hid');
- if(id==='home')homeUI();if(id==='learn')learnUI();if(id==='chest')chestUI();if(id==='craft')craftUI();if(id==='map')mapUI();if(id==='save')saveUI();window.scrollTo(0,0)}
+ if(id==='home')homeUI();if(id==='errs')errsUI();if(id==='learn')learnUI();if(id==='chest')chestUI();if(id==='craft')craftUI();if(id==='map')mapUI();if(id==='save')saveUI();window.scrollTo(0,0)}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{if(!round)show(b.dataset.s)});
 
 /* ===== Home ===== */
@@ -215,6 +226,13 @@ function homeUI(){const L=[...new Set(V.map(v=>v.l))].sort((a,b)=>a-b);
 $('all').onclick=()=>{S.sel=[...new Set(V.map(v=>v.l))];save();homeUI()};
 $('none').onclick=()=>{S.sel=[];save();homeUI()};
 $('lang').onchange=e=>{S.lang=e.target.value;save()};$('num').onchange=e=>{S.num=+e.target.value;save()};
+
+/* ===== Fehlerbank anzeigen ===== */
+function errsUI(){const e=Object.entries(S.errors).map(([id,v])=>({w:V[+id],v})).filter(x=>x.w).sort((a,b)=>a.w.l-b.w.l||a.w.id-b.w.id);
+ $('en2').textContent=e.length;
+ $('errbox').innerHTML=e.length?e.map(({w,v})=>`<div class="rec"><span><b>${w.la}</b> · ${lekName(w.l)}<br>${w.de}<br><span class="small">${w.en}</span></span><span class="small">${v.s}/3 · ✘${v.w||1}</span></div>`).join(''):'<span class="small">Leer – super!</span>';
+ $('errPractice').disabled=!e.length}
+$('showE').onclick=()=>show('errs');$('errBack').onclick=()=>show('home');$('errPractice').onclick=()=>start('err');
 
 /* ===== Wörter lernen ===== */
 let LR=null;
@@ -273,16 +291,16 @@ function next(){const r=round;if(r.i>=r.q.length)return finish();const w=r.q[r.i
 function check(){const r=round,w=r.q[r.i];
  if(r.state==='next'){r.i++;return next()}
  const a=norm($('ans').value);if(!a)return;
- const good=accepted(w.la).has(a);r.state='next';$('ans').disabled=true;$('ok').textContent='Weiter ▶';
+ const good=accepted(w.la).has(a),viaSyn=good&&!accepted(w.la,1).has(a);r.state='next';$('ans').disabled=true;$('ok').textContent='Weiter ▶';
  if(good){r.right++;r.combo++;r.best=Math.max(r.best,r.combo);
   const gain=10+Math.min(r.combo,10);addXP(gain);r.xp+=gain;
   const e=S.errors[w.id];if(e){e.s++;if(e.s>=3){delete S.errors[w.id];r.gone.push(w.la);S.mastered++;S.known[w.id]=1}}else S.known[w.id]=1;
   const rnd=Math.random()*100+Math.min(r.combo,20);const k=rnd<30?'dirt':rnd<45?'sand':rnd<63?'wood':rnd<77?'stone':rnd<87?'coal':rnd<100?'iron':rnd<112?'gold':'diamond';
   S.inv[k]=(S.inv[k]||0)+1;r.loot[k]=(r.loot[k]||0)+1;
-  $('fb').className='fb ok pop';$('fb').innerHTML=`✔ Richtig! +${gain} XP <img class="ic" src="${IMG[k]}">${ITEMS[k].n}`+(e&&S.errors[w.id]?`<br><span class="small">Fehlerbank: ${e.s}/3</span>`:e?'<br>🎉 aus der Fehlerbank entlassen!':'');
- }else{r.combo=0;r.wrong.push(w);S.xp = Math.max(0, S.xp - 1);;r.xp+=2;
+  $('fb').className='fb ok pop';$('fb').innerHTML=`✔ Richtig! +${gain} XP <img class="ic" src="${IMG[k]}">${ITEMS[k].n}`+(viaSyn?`<br><span class="small">Gleiche Übersetzung – gefragt war: <b>${w.la}</b></span>`:'')+(e&&S.errors[w.id]?`<br><span class="small">Fehlerbank: ${e.s}/3</span>`:e?'<br>🎉 aus der Fehlerbank entlassen!':'');
+ }else{r.combo=0;r.wrong.push(w);S.xp=Math.max(0,S.xp-1);r.xp-=1;
   const e=S.errors[w.id]=S.errors[w.id]||{s:0,w:0};e.s=0;e.w++;
-  $('fb').className='fb bad';$('fb').innerHTML=`✘ Leider falsch – richtig: <b>${w.la}</b> · -1 XP`;
+  $('fb').className='fb bad';$('fb').innerHTML=`✘ Leider falsch – richtig: <b>${w.la}</b>${alts(w.la).length?` <span class="small">(auch: ${alts(w.la).join(', ')})</span>`:''} · -1 XP`;
   $('mob').classList.remove('shake');void $('mob').offsetWidth;$('mob').classList.add('shake')}
  save();hud()}
 $('ok').onclick=check;
@@ -293,7 +311,7 @@ function finish(q){const r=round;round=null;show('result');const n=r.i+(q?0:0);
  const loot=Object.entries(r.loot).map(([k,v])=>`<img class="ic" src="${IMG[k]}">${v}`).join(' ')||'–';
  S.rounds++;save();hud();
  $('resbox').innerHTML=`<h2>${q?'Runde abgebrochen':'Runde geschafft!'}</h2>
- <p>Richtig: ${r.right} · Falsch: ${r.wrong.length}</p><p>Beste Combo: ${r.best} · +${r.xp} XP</p><p>Beute: ${loot}</p>${r.bonus.length?`<p class="ok">${r.bonus.join('<br>')}</p>`:''}
+ <p>Richtig: ${r.right} · Falsch: ${r.wrong.length}</p><p>Beste Combo: ${r.best} · ${r.xp>=0?'+':''}${r.xp} XP</p><p>Beute: ${loot}</p>${r.bonus.length?`<p class="ok">${r.bonus.join('<br>')}</p>`:''}
  ${r.gone.length?`<p class="ok">Aus der Fehlerbank entlassen: ${r.gone.join(', ')}</p>`:''}
  ${r.wrong.length?`<h2>Nochmal ansehen</h2><div class="small">${r.wrong.map(w=>`<b>${w.la}</b> – ${w.de}`).join('<br>')}</div><p class="small">Diese Wörter sind jetzt in der Fehlerbank (${Object.keys(S.errors).length}).</p>`:''}
  <button class="go" onclick="show('home')">Zurück zur Welt</button>`}
